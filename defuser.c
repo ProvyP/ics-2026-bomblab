@@ -147,7 +147,6 @@ int solve_phase_5(uint64_t challenge, char *out, size_t cap) {
     uint32_t values[MAX_FIELDS] = {0};
     size_t count = 2;
 
-    // 按链表遍历顺序排列的节点数据
     static const uint32_t node_value[11] = {
         0x633, 0x86b, 0x030, 0x467,
         0x369, 0x96d, 0x276, 0xa16,
@@ -208,38 +207,53 @@ int solve_phase_6(uint64_t challenge, char *out, size_t cap) {
     uint32_t values[MAX_FIELDS] = {0};
     size_t count = 1;
 
-    // 函数指针表的实际顺序
     static const uint32_t ops[8] = {
         5, 3, 0, 0, 3, 1, 4, 2
     };
 
-    // 从 challenge 提取初始参数
     uint32_t x =
         (uint32_t)(challenge >> 6) ^
         (uint32_t)(challenge >> 32);
 
-    // 两次函数调用的索引
     uint32_t i = (uint32_t)(challenge & 7);
     uint32_t j = (uint32_t)((challenge >> 3) & 7);
 
-    // 第一次间接调用
     uint32_t first = p6_apply(ops[i], x);
 
-    // 第二次间接调用
     uint32_t second = p6_apply(ops[j], first ^ 0x23e3U);
 
-    // 最终结果
     values[0] = second + 0xbeaU;
 
     return write_answer(out, cap, values, count);
 }
 
 int solve_secret(uint64_t challenge, uint64_t context, char *out, size_t cap) {
-    (void)challenge;
-    (void)context;
-    (void)out;
-    (void)cap;
-    // TODO（选做）: 根据 secret_gate、secret_copy 和 secret_phase 的汇编构造完整的第七行，写入 out 后返回 0。
-    // 第七行不一定只有整数，可以直接用 snprintf 写入；还没完成时保持返回 1，测试会显示 not attempted。
-    return 1;
+    uint32_t first = (uint32_t)(context & 3);
+
+    uint32_t a =
+        (uint32_t)challenge ^
+        (uint32_t)(challenge >> 32);
+
+    uint32_t b =
+        (uint32_t)context ^
+        (uint32_t)(context >> 32);
+
+    uint32_t mask =
+        (first * 0xefd1U) ^
+        (uint32_t)(context >> 16);
+
+    uint32_t second =
+        ((5U * (a ^ b) + 0xefd1U) ^ 0xfc6eU) ^ mask;
+
+    uint32_t third =
+        second ^ (b + first + 0xfc6eU + (a >> 1));
+
+    int size = snprintf(
+        out, cap,
+        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOPEN%"
+        PRIu32 " %" PRIu32 " %" PRIu32,
+        first, second, third
+    );
+
+    return size < 0 || (size_t)size >= cap;
 }
