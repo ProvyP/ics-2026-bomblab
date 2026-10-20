@@ -145,9 +145,37 @@ int solve_phase_4(uint64_t challenge, char *out, size_t cap) {
 
 int solve_phase_5(uint64_t challenge, char *out, size_t cap) {
     uint32_t values[MAX_FIELDS] = {0};
-    size_t count = 0;
-    (void)challenge;
-    // TODO: 根据 phase_05 的汇编，用 challenge 算出口令中的各个整数，依次存入 values，并把 count 改为整数个数。
+    size_t count = 2;
+
+    // 按链表遍历顺序排列的节点数据
+    static const uint32_t node_value[11] = {
+        0x633, 0x86b, 0x030, 0x467,
+        0x369, 0x96d, 0x276, 0xa16,
+        0x51d, 0xb73, 0x147
+    };
+
+    static const uint32_t node_salt[11] = {
+        0xad2d, 0xb9a9, 0xeb52, 0x826d,
+        0xf097, 0xe91c, 0x48b4, 0x7073,
+        0x6cf0, 0x1634, 0x77e4
+    };
+
+    uint32_t start = (uint32_t)(challenge & 7);
+    uint32_t steps = (uint32_t)((challenge >> 3) & 3);
+
+    uint32_t acc =
+        (uint32_t)(challenge >> 6) ^
+        (uint32_t)(challenge >> 32) ^
+        0xe178U;
+
+    for (uint32_t i = start; i <= start + steps; ++i) {
+        acc = (5U * (acc + node_salt[i])) ^ node_value[i];
+    }
+
+    values[0] = acc;
+
+    values[1] = node_value[start + steps];
+
     return write_answer(out, cap, values, count);
 }
 
