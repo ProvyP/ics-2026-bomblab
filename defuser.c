@@ -179,11 +179,58 @@ int solve_phase_5(uint64_t challenge, char *out, size_t cap) {
     return write_answer(out, cap, values, count);
 }
 
+static uint32_t p6_apply(uint32_t op, uint32_t x) {
+    switch (op) {
+        case 0:
+            return (x + 0xe222U) ^ (x >> 5);
+
+        case 1:
+            return (x >> 1) | (x << 31);
+
+        case 2:
+            return ((x << 5) + 0x84c5U) ^ (3U * x);
+
+        case 3:
+            return (x ^ 0x9e32U) + (x << 7);
+
+        case 4:
+            return ((x >> 5) ^ x) + 0x760fU;
+
+        case 5:
+            return ((x << 2) | (x >> 30)) ^ 0xcbfU;
+
+        default:
+            return 0;
+    }
+}
+
 int solve_phase_6(uint64_t challenge, char *out, size_t cap) {
     uint32_t values[MAX_FIELDS] = {0};
-    size_t count = 0;
-    (void)challenge;
-    // TODO: 根据 phase_06 的汇编，用 challenge 算出口令中的各个整数，依次存入 values，并把 count 改为整数个数。
+    size_t count = 1;
+
+    // 函数指针表的实际顺序
+    static const uint32_t ops[8] = {
+        5, 3, 0, 0, 3, 1, 4, 2
+    };
+
+    // 从 challenge 提取初始参数
+    uint32_t x =
+        (uint32_t)(challenge >> 6) ^
+        (uint32_t)(challenge >> 32);
+
+    // 两次函数调用的索引
+    uint32_t i = (uint32_t)(challenge & 7);
+    uint32_t j = (uint32_t)((challenge >> 3) & 7);
+
+    // 第一次间接调用
+    uint32_t first = p6_apply(ops[i], x);
+
+    // 第二次间接调用
+    uint32_t second = p6_apply(ops[j], first ^ 0x23e3U);
+
+    // 最终结果
+    values[0] = second + 0xbeaU;
+
     return write_answer(out, cap, values, count);
 }
 
